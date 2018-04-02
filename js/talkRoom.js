@@ -52,7 +52,7 @@ $(function () {
     /*退出群聊提示*/
     socket.on('leave', function (name) {
         if (name != null) {
-            var html = '<p>FBI warning:' + name + '已退出群聊</p>';
+            var html = '<p>warning:' + name + '已退出群聊</p>';
             $('.chat-con').append(html);
         }
     });

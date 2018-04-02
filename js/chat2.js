@@ -1,6 +1,6 @@
 $(function () {
     /*建立socket连接，使用websocket协议，端口号是服务器端监听端口号*/
-    var socket = io.connect('ws://localhost:8081', {secure: true});
+    var socket = io.connect('wss://chat.loading.pub', {secure: true});
     /*定义用户名*/
     var uname = null;
     var roomid = GetQueryString("roomid");
@@ -54,7 +54,7 @@ $(function () {
     /*退出群聊提示*/
     socket.on('leave', function (name) {
         if (name != null) {
-            var html = '<p>FBI warning:' + name + '已退出群聊</p>';
+            var html = '<p>warning:' + name + '已退出群聊</p>';
             $('.chat-con').append(html);
         }
     });

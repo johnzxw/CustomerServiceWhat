@@ -1,6 +1,6 @@
 $(function () {
     /*建立socket连接，使用websocket协议，端口号是服务器端监听端口号*/
-    var socket = io.connect('ws://localhost:8081', {secure: true});
+    var socket = io.connect('wss://chat.loading.pub', {secure: true});
     /*定义用户名*/
     var uname = null;
 
@@ -54,7 +54,7 @@ $(function () {
     /*退出群聊提示*/
     socket.on('leave', function (name) {
         if (name != null) {
-            var html = '<p>FBI warning:' + name + '已退出群聊</p>';
+            var html = '<p>warning:' + name + '已退出群聊</p>';
             $('.chat-con').append(html);
         }
     });
@@ -86,7 +86,7 @@ $(function () {
     }
 
     function showTalkUrl(data) {
-        var html = '<div class="chat-item item-left clearfix rela"><a href="http://localhost/node/kefu.html?roomid=' + data.sockeid + '&name=kehu">点击该链接 就可以与我对话了 </a></div>';
+        var html = '<div class="chat-item item-left clearfix rela"><a href="https://chat.loading.pub/static/kefu.html?roomid=' + data.sockeid + '&name=kehu">点击该链接 就可以与我对话了</a></div>';
         console.log(data.sockeid);
         console.log(html);
         $('.chat-con').append(html);
