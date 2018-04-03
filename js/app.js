@@ -18,26 +18,48 @@ mongoose.connect("mongodb://127.0.0.1:27017/chat", function (err) {
 });
 const Schema = mongoose.Schema,
     ObjectId = Schema.ObjectId;
+//发送消息记录
 var ChatlogSchema = new Schema({
     data: {type: String},
     sendUser: {type: String},
     receiveUser: {type: String},
+    ip: {type: String},
     roomId: {type: String},
-    receiveTime: {type: Number, index: true},
+    receiveTime: {type: Number, index: true, default: new Date().getTime()},
     date: {type: Date, default: Date.now}
 
 });
+//用户登录记录
 var ChatUserLoginSchema = new Schema({
     name: {type: String},
     ip: {type: String},
     roomId: {type: String},
-    loginTime: {type: Number, index: true},
+    loginTime: {type: Number, index: true, default: new Date().getTime()},
     date: {type: Date, default: Date.now}
 
+});
+//用户退出记录
+var ChatUserLogoutSchema = new Schema({
+    name: {type: String},
+    ip: {type: String},
+    roomId: {type: String},
+    loginTime: {type: Number, index: true, default: new Date().getTime()},
+    date: {type: Date, default: Date.now}
+});
+//房间里面用户
+var ChatRoomUserSchema = new Schema({
+    name: {type: String},
+    roomId: {type: String, index: true},
+    joinTime: {type: Number, index: true, default: new Date().getTime()},
+    ip: {type: String},
+    isGroupMain: {type: Boolean, default: false},
+    date: {type: Date, default: Date.now}
 });
 //新建model 设置表名称为chatlog
 var ChatlogModel = mongoose.model("chatlog", ChatlogSchema, "chatlog");
 var ChatUserLoginModel = mongoose.model("chatuserloginlog", ChatUserLoginSchema, "chatuserloginlog");
+var CharUserLogoutModel = mongoose.model("chatuserlogoutlog", ChatUserLogoutSchema, "chatuserlogoutlog");
+var ChatRoomUserModel = mongoose.model("chatroomuser", ChatRoomUserSchema, "chatroomuser");
 app.listen(PORT, {origins: '*:*'});
 io.on('connection', function (socket) {
     /*是否是新用户标识*/
@@ -58,8 +80,10 @@ io.on('connection', function (socket) {
         isNewPerson = true;
         username = data.username;
         if (data.roomid) {
+            isgroupmain = false;
             roomId = data.roomid;
         } else {
+            isgroupmain = true;
             roomId = socket.id;
         }
         var returnData = {username: username, sockeid: socket.id, rooms: socket.rooms};
@@ -69,18 +93,27 @@ io.on('connection', function (socket) {
             });
             /*登录成功*/
             if (roomId) {
+                var chatRoomUser = new ChatRoomUserModel();
+                chatRoomUser.name = username;
+                chatRoomUser.roomId = roomId;
+                chatRoomUser.ip = getClientIp();
+                chatRoomUser.isGroupMain = isgroupmain;
+                chatRoomUser.save(function (err) {
+                    if (err) {
+                        console.log("join room fail! data:" + chatRoomUser.toLocaleString());
+                    }
+                });
                 socket.join(roomId);
             }
             var ChatUserLogin = new ChatUserLoginModel();
             ChatUserLogin.name = data.username;
             ChatUserLogin.roomId = roomId;
-            ChatUserLogin.ip = socket.handshake.address;
+            ChatUserLogin.ip = getClientIp();
             ChatUserLogin.loginTime = new Date().getTime();
             ChatUserLogin.save(function (err) {
                 if (err) {
-                    console.log('save failed');
+                    console.log('save login log failed! data:' + ChatUserLogin.toLocaleString());
                 }
-                console.log("save success");
             });
             socket.emit('loginSuccess', returnData);
             /*向所有连接的客户端广播add事件*/
@@ -99,18 +132,27 @@ io.on('connection', function (socket) {
         LogInsert.roomId = roomId;
         LogInsert.sendUser = data.username;
         LogInsert.receiveUser = "";
+        LogInsert.ip = getClientIp();
         LogInsert.receiveTime = new Date().getTime();
         LogInsert.save(function (err) {
             if (err) {
-                console.log('save failed');
+                console.log('save send message failed! data:' + LogInsert.toLocaleString());
             }
-            console.log("save success");
         });
         io.sockets.to(roomId).emit('receiveMessage', data);
     });
 
     /*退出登录*/
     socket.on('disconnect', function () {
+        var chatuserlogout = new CharUserLogoutModel();
+        chatuserlogout.name = username;
+        chatuserlogout.roomId = roomId;
+        chatuserlogout.ip = getClientIp();
+        chatuserlogout.save(function (err) {
+            if (err) {
+                console.log("save disconnect log fail ! data:" + chatuserlogout.toLocaleString());
+            }
+        });
         /*向所有连接的客户端广播leave事件*/
         io.sockets.to(roomId).emit('leave', username);
         users.map(function (val, index) {
@@ -118,6 +160,10 @@ io.on('connection', function (socket) {
                 users.splice(index, 1);
             }
         })
-    })
-})
+    });
+
+    function getClientIp() {
+        return socket.handshake.address;
+    }
+});
 console.log('app listen at' + PORT);
