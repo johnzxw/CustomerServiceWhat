@@ -163,6 +163,15 @@ io.on('connection', function (socket) {
     });
 
     function getClientIp() {
+        //nginx负载 upstream
+        var ip = socket.handshake.headers["x-real-ip"];
+        if (ip) {
+            return ip;
+        }
+        var ip = socket.request.connection.remoteAddress;
+        if (ip) {
+            return ip;
+        }
         return socket.handshake.address;
     }
 });
