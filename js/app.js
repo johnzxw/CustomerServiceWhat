@@ -60,7 +60,13 @@ var ChatlogModel = mongoose.model("chatlog", ChatlogSchema, "chatlog");
 var ChatUserLoginModel = mongoose.model("chatuserloginlog", ChatUserLoginSchema, "chatuserloginlog");
 var CharUserLogoutModel = mongoose.model("chatuserlogoutlog", ChatUserLogoutSchema, "chatuserlogoutlog");
 var ChatRoomUserModel = mongoose.model("chatroomuser", ChatRoomUserSchema, "chatroomuser");
-app.listen(PORT, {origins: '*:*'});
+// app.listen(PORT, {origins: '*:*'});
+app.listen({
+    host: 'localhost',
+    port: PORT,
+    exclusive: true,
+    origins: '*:*'
+});
 io.on('connection', function (socket) {
     /*是否是新用户标识*/
     var isNewPerson = true;
