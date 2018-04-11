@@ -86,7 +86,7 @@ $(function () {
     }
 
     function showTalkUrl(data) {
-        var html = '<div class="chat-item item-left clearfix rela"><a href="https://chat.loading.pub/static/kefu.html?roomid=' + data.sockeid + '&name=kehu">点击该链接 就可以与我对话了</a></div>';
+        var html = '<div class="chat-item item-left clearfix rela"><a href="https://chat.loading.pub/kefu.html?roomid=' + data.sockeid + '&name=kehu">点击该链接 就可以与我对话了</a></div>';
         console.log(data.sockeid);
         console.log(html);
         $('.chat-con').append(html);
