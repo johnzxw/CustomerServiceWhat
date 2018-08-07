@@ -109,6 +109,14 @@ io.on('connection', function (socket) {
                         console.log("join room fail! data:" + chatRoomUser.toLocaleString());
                     }
                 });
+                //判断当前房间号 是否存在
+                if( typeof(io.sockets.adapter.rooms[roomId])  == 'undefined' ){
+                    console.log(roomId+'房间不存在');
+                }
+                //查看当前roomid的房间信息
+                console.log(io.sockets.adapter.rooms[roomId]);
+                //所有的房间信息
+                console.log(socket.adapter.rooms);
                 socket.join(roomId);
             }
             var ChatUserLogin = new ChatUserLoginModel();
