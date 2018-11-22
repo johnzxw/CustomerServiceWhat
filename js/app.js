@@ -9,7 +9,7 @@ var users = [];
 
 const mongoose = require("mongoose");
 /* 连接本地mongodb */
-mongoose.connect("mongodb://127.0.0.1:27017/chat", function (err) {
+mongoose.connect("mongodb://127.0.0.1:27017/chat", {useNewUrlParser: true}, function (err) {
     if (!err) {
         console.log("connected to Mongodb");
     } else {
@@ -99,19 +99,10 @@ io.on('connection', function (socket) {
             });
             /*登录成功*/
             if (roomId) {
-                var chatRoomUser = new ChatRoomUserModel();
-                chatRoomUser.name = username;
-                chatRoomUser.roomId = roomId;
-                chatRoomUser.ip = getClientIp();
-                chatRoomUser.isGroupMain = isgroupmain;
-                chatRoomUser.save(function (err) {
-                    if (err) {
-                        console.log("join room fail! data:" + chatRoomUser.toLocaleString());
-                    }
-                });
+                saveRoomUserLog(username, roomId, isgroupmain);
                 //判断当前房间号 是否存在
-                if( typeof(io.sockets.adapter.rooms[roomId])  == 'undefined' ){
-                    console.log(roomId+'房间不存在');
+                if (typeof(io.sockets.adapter.rooms[roomId]) == 'undefined') {
+                    console.log(roomId + '房间不存在');
                 }
                 //查看当前roomid的房间信息
                 console.log(io.sockets.adapter.rooms[roomId]);
@@ -119,16 +110,7 @@ io.on('connection', function (socket) {
                 console.log(socket.adapter.rooms);
                 socket.join(roomId);
             }
-            var ChatUserLogin = new ChatUserLoginModel();
-            ChatUserLogin.name = data.username;
-            ChatUserLogin.roomId = roomId;
-            ChatUserLogin.ip = getClientIp();
-            ChatUserLogin.loginTime = new Date().getTime();
-            ChatUserLogin.save(function (err) {
-                if (err) {
-                    console.log('save login log failed! data:' + ChatUserLogin.toLocaleString());
-                }
-            });
+            saveLoginLog(data.username, roomId);
             socket.emit('loginSuccess', returnData);
             /*向所有连接的客户端广播add事件*/
             io.sockets.to(roomId).emit('add', data);
@@ -141,23 +123,23 @@ io.on('connection', function (socket) {
     /*监听发送消息*/
     socket.on('sendMessage', function (data) {
         // socket.emit('receiveMessage', data);
-        var LogInsert = new ChatlogModel();
-        LogInsert.data = data.message;
-        LogInsert.roomId = roomId;
-        LogInsert.sendUser = data.username;
-        LogInsert.receiveUser = "";
-        LogInsert.ip = getClientIp();
-        LogInsert.receiveTime = new Date().getTime();
-        LogInsert.save(function (err) {
-            if (err) {
-                console.log('save send message failed! data:' + LogInsert.toLocaleString());
-            }
-        });
+        saveUserChatLog(data.username, data.message, roomId);
         io.sockets.to(roomId).emit('receiveMessage', data);
     });
 
     /*退出登录*/
     socket.on('disconnect', function () {
+        saveUserLogoutLog(username, roomId);
+        /*向所有连接的客户端广播leave事件*/
+        io.sockets.to(roomId).emit('leave', username);
+        users.map(function (val, index) {
+            if (val.username === username) {
+                users.splice(index, 1);
+            }
+        })
+    });
+
+    function saveUserLogoutLog(username, roomId) {
         var chatuserlogout = new CharUserLogoutModel();
         chatuserlogout.name = username;
         chatuserlogout.roomId = roomId;
@@ -167,14 +149,48 @@ io.on('connection', function (socket) {
                 console.log("save disconnect log fail ! data:" + chatuserlogout.toLocaleString());
             }
         });
-        /*向所有连接的客户端广播leave事件*/
-        io.sockets.to(roomId).emit('leave', username);
-        users.map(function (val, index) {
-            if (val.username === username) {
-                users.splice(index, 1);
+    }
+
+    function saveUserChatLog(username, message, roomId) {
+        var LogInsert = new ChatlogModel();
+        LogInsert.data = message;
+        LogInsert.roomId = roomId;
+        LogInsert.sendUser = username;
+        LogInsert.receiveUser = "";
+        LogInsert.ip = getClientIp();
+        LogInsert.receiveTime = new Date().getTime();
+        LogInsert.save(function (err) {
+            if (err) {
+                console.log('save send message failed! data:' + LogInsert.toLocaleString());
             }
-        })
-    });
+        });
+    }
+
+    function saveRoomUserLog(username, roomId, isgroupmain) {
+        var chatRoomUser = new ChatRoomUserModel();
+        chatRoomUser.name = username;
+        chatRoomUser.roomId = roomId;
+        chatRoomUser.ip = getClientIp();
+        chatRoomUser.isGroupMain = isgroupmain;
+        chatRoomUser.save(function (err) {
+            if (err) {
+                console.log("join room fail! data:" + chatRoomUser.toLocaleString());
+            }
+        });
+    }
+
+    function saveLoginLog(name, roomId) {
+        var ChatUserLogin = new ChatUserLoginModel();
+        ChatUserLogin.name = name;
+        ChatUserLogin.roomId = roomId;
+        ChatUserLogin.ip = getClientIp();
+        ChatUserLogin.loginTime = new Date().getTime();
+        ChatUserLogin.save(function (err) {
+            if (err) {
+                console.log('save login log failed! data:' + ChatUserLogin.toLocaleString());
+            }
+        });
+    }
 
     function getClientIp() {
         //nginx负载 upstream
